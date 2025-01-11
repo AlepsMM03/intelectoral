@@ -1,0 +1,4 @@
+pymysql
+streamlit
+pandas
+folium
