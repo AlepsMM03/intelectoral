@@ -9,10 +9,11 @@ from streamlit_folium import folium_static
 # Conexión a la base de datos
 def connect_db():
     return pymysql.connect(
-        host='localhost',
-        user='root',
-        password='',
-        database='ironman'
+        host='intelectoraldb.cluq4c8s0jq2.us-east-2.rds.amazonaws.com',
+        user='alepsMartes03',
+        password='M03j02M18A',
+        database='intelectoraldb',
+        port=3306
     )
 
 # Obtener los municipios
