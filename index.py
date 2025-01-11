@@ -165,7 +165,7 @@ def create_map_with_layers(results, municipio):
 
 
 # Streamlit UI
-st.title('Análisis Político con Mapas')
+st.title('Sistema de ingeniería electoral e inteligencia territorial')
 
 # Formulario
 tipo = st.selectbox("Tipo de análisis", ["", "Ayuntamiento", "Gobernatura", "Diputacion"])
