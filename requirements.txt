@@ -2,3 +2,4 @@ pymysql
 streamlit
 pandas
 folium
+geopandas
