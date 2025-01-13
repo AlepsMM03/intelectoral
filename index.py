@@ -25,6 +25,10 @@ def get_municipios():
     municipios = [row[0] for row in cursor.fetchall()]
     connection.close()
     return municipios
+st.set_page_config(
+    page_title="Sistema de Ingeniería Electoral",
+    page_icon="🗳️"  # Puedes usar emojis como ícono
+)
 
 # Normalizar nombres
 def normalize_name(name):
@@ -77,7 +81,7 @@ def create_map_with_layers(results, municipio):
     
     m = folium.Map(location=map_center, zoom_start=zoom_start)
 
-    geojson_url = 'json/simplify.json'  # Ruta a tu archivo GeoJSON
+    geojson_url = 'json/simplify.json'
     try:
         with open(geojson_url) as f:
             geojson_data = json.load(f)
@@ -87,7 +91,6 @@ def create_map_with_layers(results, municipio):
 
     # Normalizar el nombre del municipio a minúsculas
     municipio_normalizado = normalize_name(municipio)
-    
     # Filtrar el GeoJSON para el municipio específico
     filtered_data = [
         feature for feature in geojson_data['features'] 
@@ -123,6 +126,13 @@ def create_map_with_layers(results, municipio):
         'Ayuntamiento 2018': folium.FeatureGroup(name='Ayuntamiento 2018'),
         'Ayuntamiento 2021': folium.FeatureGroup(name='Ayuntamiento 2021')
     }
+    
+    colors = {
+    '2016': 'blue',
+    '2018': 'green',
+    '2021': 'red'
+}
+
 
     # Filtrar resultados por año y añadir las capas correspondientes
     for year in ['2016', '2018', '2021']:
@@ -137,7 +147,7 @@ def create_map_with_layers(results, municipio):
             folium.GeoJson(
                 feature,
                 popup=popup,
-                style_function=lambda feature: {'color': 'blue', 'weight': 2}
+                style_function = lambda feature, year=year: {'color': colors[year], 'weight': 2}
             ).add_to(layers[f'Ayuntamiento {year}'])
 
     # Añadir las capas al mapa y agregar el control de capas
@@ -156,10 +166,11 @@ def create_map_with_layers(results, municipio):
         
         # Crear un popup para cada sección
         popup = folium.Popup(f"Sección: {seccion}<br>Votos: {votos}", max_width=200)
-        folium.GeoJson(feature, popup=popup, style_function=lambda feature: {
-            'color': 'blue', 'weight': 2
-        }).add_to(m)
-    
+        folium.GeoJson(
+    feature,
+    popup=popup,
+    style_function=lambda feature, year=year: {'color': colors[year], 'weight': 2}
+).add_to(layers[f'Ayuntamiento {year}'])
     return m
 
 
