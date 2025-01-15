@@ -2,10 +2,10 @@ import streamlit as st
 import pymysql
 import pandas as pd
 import folium
-from folium import plugins
-import geopandas as gpd
 import json
+import plotly.express as px
 from streamlit_folium import folium_static
+
 # Conexión a la base de datos
 def connect_db():
     return pymysql.connect(
@@ -25,9 +25,10 @@ def get_municipios():
     municipios = [row[0] for row in cursor.fetchall()]
     connection.close()
     return municipios
+
 st.set_page_config(
     page_title="Sistema de Ingeniería Electoral",
-    page_icon="🗳️"  # Puedes usar emojis como ícono
+    page_icon="🗳️"
 )
 
 # Normalizar nombres
@@ -71,13 +72,9 @@ def get_results(tipo, partido, municipio):
     return results
 
 # Crear el mapa con Folium
-def normalize_name(name):
-    # Convertir todo el nombre a minúsculas y eliminar espacios adicionales
-    return name.strip().lower()
-
 def create_map_with_layers(results, municipio):
-    map_center = [23.6345, -102.5528]  # Coordenadas generales si no encontramos coordenadas específicas
-    zoom_start = 6  # Nivel de zoom por defecto
+    map_center = [23.6345, -102.5528]  
+    zoom_start = 6  
     
     m = folium.Map(location=map_center, zoom_start=zoom_start)
 
@@ -89,9 +86,7 @@ def create_map_with_layers(results, municipio):
         st.error(f"Error al cargar el archivo GeoJSON: {e}")
         return None
 
-    # Normalizar el nombre del municipio a minúsculas
     municipio_normalizado = normalize_name(municipio)
-    # Filtrar el GeoJSON para el municipio específico
     filtered_data = [
         feature for feature in geojson_data['features'] 
         if normalize_name(feature['properties']['nom_mun_ine']) == municipio_normalizado
@@ -101,7 +96,6 @@ def create_map_with_layers(results, municipio):
         st.warning(f"No se encontraron datos para el municipio {municipio}.")
         return m
 
-    # Obtenemos las coordenadas del centro del municipio (si existen en el GeoJSON)
     latitudes = []
     longitudes = []
 
@@ -117,10 +111,8 @@ def create_map_with_layers(results, municipio):
     center_lat = sum(latitudes) / len(latitudes)
     center_lon = sum(longitudes) / len(longitudes)
 
-    # Ajustamos el mapa al centro del municipio
     m = folium.Map(location=[center_lat, center_lon], zoom_start=12)
 
-    # Crear diferentes capas para cada año
     layers = {
         'Ayuntamiento 2016': folium.FeatureGroup(name='Ayuntamiento 2016'),
         'Ayuntamiento 2018': folium.FeatureGroup(name='Ayuntamiento 2018'),
@@ -128,13 +120,11 @@ def create_map_with_layers(results, municipio):
     }
     
     colors = {
-    '2016': 'blue',
-    '2018': 'green',
-    '2021': 'red'
-}
+        '2016': 'blue',
+        '2018': 'green',
+        '2021': 'red'
+    }
 
-
-    # Filtrar resultados por año y añadir las capas correspondientes
     for year in ['2016', '2018', '2021']:
         year_results = [result for result in results if year in result['tabla']]
         for feature in filtered_data:
@@ -142,7 +132,6 @@ def create_map_with_layers(results, municipio):
             match = next((result for result in year_results if str(result['seccion']).zfill(4) == seccion), None)
             votos = match['votos'] if match else "Sin datos"
 
-            # Crear un popup para cada sección
             popup = folium.Popup(f"Sección: {seccion}<br>Votos: {votos}", max_width=200)
             folium.GeoJson(
                 feature,
@@ -150,30 +139,12 @@ def create_map_with_layers(results, municipio):
                 style_function = lambda feature, year=year: {'color': colors[year], 'weight': 2}
             ).add_to(layers[f'Ayuntamiento {year}'])
 
-    # Añadir las capas al mapa y agregar el control de capas
     for layer in layers.values():
         layer.add_to(m)
 
     folium.LayerControl().add_to(m)
 
     return m
-
-    # Añadir capas de votos al mapa
-    for feature in filtered_data:
-        seccion = feature['properties']['cve_seccion'].zfill(4)
-        match = next((result for result in results if str(result['seccion']).zfill(4) == seccion), None)
-        votos = match['votos'] if match else "Sin datos"
-        
-        # Crear un popup para cada sección
-        popup = folium.Popup(f"Sección: {seccion}<br>Votos: {votos}", max_width=200)
-        folium.GeoJson(
-    feature,
-    popup=popup,
-    style_function=lambda feature, year=year: {'color': colors[year], 'weight': 2}
-).add_to(layers[f'Ayuntamiento {year}'])
-    return m
-
-
 
 # Streamlit UI
 st.title('Sistema de ingeniería electoral e inteligencia territorial')
@@ -191,6 +162,31 @@ if st.button('Consultar'):
             # Crear mapa
             m = create_map_with_layers(results, municipio)
             st.write("Resultados por tabla:")
+
+            # Crear DataFrame
+            df = pd.DataFrame(results)
+            if not df.empty:
+                # Análisis comparativo compacto y visual
+                df['year'] = df['tabla'].apply(lambda x: x[-4:])  
+                df_comparativo = df.groupby(['seccion', 'year'])['votos'].sum().reset_index()
+
+                # Pivotar para tener las secciones como filas y los años como columnas
+                df_comparativo = df_comparativo.pivot(index='seccion', columns='year', values='votos')
+
+                if not df_comparativo.empty:
+                    st.write("**Análisis comparativo de votos por sección y año:**")
+                    st.dataframe(df_comparativo)
+
+                    # Crear gráfico interactivo con Plotly
+                    fig = px.bar(df_comparativo, 
+                                 x=df_comparativo.index, 
+                                 y=['2016', '2018', '2021'],
+                                 title=f"Votos por sección para {municipio}",
+                                 labels={'value': 'Votos', 'seccion': 'Sección'},
+                                 barmode='group')
+                    fig.update_layout(xaxis_title='Sección', yaxis_title='Votos')
+                    st.plotly_chart(fig)
+
             # Mostrar el mapa
             folium_static(m)
         else:
