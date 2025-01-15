@@ -4,3 +4,4 @@ pandas
 folium
 geopandas
 streamlit_folium
+plotly
