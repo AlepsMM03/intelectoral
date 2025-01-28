@@ -26,10 +26,8 @@ def get_municipios():
     connection.close()
     return municipios
 
-st.set_page_config(
-    page_title="Sistema de Ingeniería Electoral",
-    page_icon="🗳️"
-)
+st.set_page_config(page_title="Sistema de Ingeniería Electoral", page_icon="📊", layout="wide")
+
 
 # Normalizar nombres
 def normalize_name(name):
@@ -153,11 +151,12 @@ st.title('Sistema de ingeniería electoral e inteligencia territorial')
 tipo = st.sidebar.selectbox("Tipo de análisis", ["", "Ayuntamiento", "Gobernatura", "Diputacion"])
 partido = st.sidebar.selectbox("Partido Político", ["", "PAN", "PRI", "MORENA", "PRD", "PVEM", "PT", "MC", "PAN_PRD_MC","PAN_PRD"])
 municipio = st.sidebar.selectbox("Municipio", get_municipios())
-
-if st.sidebar.button('Consultar', key='consultar_button'):
-    if tipo and partido and municipio:
+with st.spinner('Cargando resultados...'):
+    
+    if st.sidebar.button('Consultar', key='consultar_button'):
+        if tipo and partido and municipio:
         # Obtener resultados
-        results = get_results(tipo, partido, municipio)
+         results = get_results(tipo, partido, municipio)
         if results:
             # Crear mapa
             m = create_map_with_layers(results, municipio)
@@ -219,9 +218,10 @@ def get_lista_nominal(tipo, municipio):
             })
     connection.close()
     return lista_nominal_results
+with st.spinner('Cargando resultados...'):
 
-if st.sidebar.button('Listas Nominales'):
-    if tipo and partido and municipio:
+    if st.sidebar.button('Análisis Lista Nominal'):
+     if tipo and partido and municipio:
         # Obtener resultados
         results = get_results(tipo, partido, municipio)
         lista_nominal_results = get_lista_nominal(tipo, municipio)
@@ -272,4 +272,4 @@ if st.sidebar.button('Listas Nominales'):
         else:
             st.write("No se encontraron resultados de listas nominales.")
     else:
-        st.write("Por favor, complete todos los campos.")
+        st.write(" ")
