@@ -149,12 +149,12 @@ def create_map_with_layers(results, municipio):
 # Streamlit UI
 st.title('Sistema de ingeniería electoral e inteligencia territorial')
 
-# Formulario
-tipo = st.selectbox("Tipo de análisis", ["", "Ayuntamiento", "Gobernatura", "Diputacion"])
-partido = st.selectbox("Partido Político", ["", "PAN", "PRI", "MORENA", "PRD", "PVEM", "PT", "MC"])
-municipio = st.selectbox("Municipio", get_municipios())
+# Sidebar
+tipo = st.sidebar.selectbox("Tipo de análisis", ["", "Ayuntamiento", "Gobernatura", "Diputacion"])
+partido = st.sidebar.selectbox("Partido Político", ["", "PAN", "PRI", "MORENA", "PRD", "PVEM", "PT", "MC", "PAN_PRD_MC","PAN_PRD"])
+municipio = st.sidebar.selectbox("Municipio", get_municipios())
 
-if st.button('Consultar', key='consultar_button'):
+if st.sidebar.button('Consultar', key='consultar_button'):
     if tipo and partido and municipio:
         # Obtener resultados
         results = get_results(tipo, partido, municipio)
@@ -193,7 +193,8 @@ if st.button('Consultar', key='consultar_button'):
             st.write("No se encontraron resultados.")
     else:
         st.write("Por favor, complete todos los campos.")
- # Función para obtener resultados de LISTA_NOMINAL
+
+# Función para obtener resultados de LISTA_NOMINAL
 def get_lista_nominal(tipo, municipio):
     municipio_normalizado = normalize_name(municipio)
     connection = connect_db()
@@ -219,7 +220,7 @@ def get_lista_nominal(tipo, municipio):
     connection.close()
     return lista_nominal_results
 
-if st.button('Listas Nominales'):
+if st.sidebar.button('Listas Nominales'):
     if tipo and partido and municipio:
         # Obtener resultados
         results = get_results(tipo, partido, municipio)
@@ -252,42 +253,23 @@ if st.button('Listas Nominales'):
 
                 # Análisis comparativo de lista nominal por sección y año
                 df_combined['year'] = df_combined['tabla'].apply(lambda x: x[-4:])
-                df_lista_comparativo = df_combined.groupby(['seccion', 'year'])['lista_nominal'].sum().reset_index()
+                df_lista_nominal_comparativo = df_combined.groupby(['seccion', 'year'])['lista_nominal'].sum().reset_index()
 
-                # Pivotar para visualización
-                df_lista_comparativo = df_lista_comparativo.pivot(index='seccion', columns='year', values='lista_nominal')
+                if not df_lista_nominal_comparativo.empty:
+                    st.write("**Análisis de lista nominal por sección y año:**")
+                    st.dataframe(df_lista_nominal_comparativo)
 
-                st.write("**Comparación de LISTA_NOMINAL por sección y año:**")
-                st.dataframe(df_lista_comparativo)
+                    # Crear gráfico de lista nominal con Plotly
+                    fig_nominal = px.bar(df_lista_nominal_comparativo, 
+                                         x=df_lista_nominal_comparativo['seccion'], 
+                                         y='lista_nominal', 
+                                         color='year', 
+                                         title=f"Lista Nominal por Sección para {municipio}",
+                                         labels={'seccion': 'Sección', 'lista_nominal': 'Lista Nominal'})
+                    st.plotly_chart(fig_nominal)
 
-                # Calcular las diferencias entre los años
-                # Calcular las diferencias entre los años
-                df_lista_comparativo['2016-2018'] = df_lista_comparativo['2018'] - df_lista_comparativo['2016']
-                df_lista_comparativo['2018-2021'] = df_lista_comparativo['2021'] - df_lista_comparativo['2018']
-                df_lista_comparativo['2016-2021'] = df_lista_comparativo['2021'] - df_lista_comparativo['2016']
-
-                # Mostrar tabla en Streamlit
-                st.write(f"Tabla comparativa de LISTA NOMINAL para {municipio}")
-                st.dataframe(df_lista_comparativo.style.format(precision=0))  # Opcional: Redondear los números
-
-
-
-                # Mostrar relación votos / lista nominal en gráfico
-                fig_relacion = px.scatter(
-                    df_combined, 
-                    x='lista_nominal', 
-                    y='relacion_votos_lista',
-                    color='year',
-                    title=f"Relación Votos / Lista Nominal ({municipio})",
-                    labels={'lista_nominal': 'Lista Nominal', 'relacion_votos_lista': 'Relación (%)'},
-                    hover_data=['seccion']
-                )
-                fig_relacion.update_layout(xaxis_title='Lista Nominal', yaxis_title='Relación (%)')
-                st.plotly_chart(fig_relacion)
-
-            # Mostrar el mapa
             folium_static(m)
         else:
-            st.write("No se encontraron resultados.")
+            st.write("No se encontraron resultados de listas nominales.")
     else:
         st.write("Por favor, complete todos los campos.")
