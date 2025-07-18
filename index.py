@@ -9,10 +9,10 @@ from streamlit_folium import folium_static
 # Conexión a la base de datos
 def connect_db():
     return pymysql.connect(
-        host='intelectoraldb.cluq4c8s0jq2.us-east-2.rds.amazonaws.com',
-        user='alepsMartes03',
-        password='M03j02M18A',
-        database='intelectoraldb',
+        host='sql5.freesqldatabase.com',
+        user='sql5790740',
+        password='3wPGJAURgi',
+        database='sql5790740',
         port=3306
     )
 
